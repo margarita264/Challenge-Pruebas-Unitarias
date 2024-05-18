@@ -14,7 +14,7 @@ y las reglas de negocio que deben implementarse.
 - Lombok
 
 ## Instalación
-- git clone 
+- git clone https://github.com/margarita264/Challenge-Pruebas-Unitarias.git
 - mvn clean install
 
 ## Correr los test
