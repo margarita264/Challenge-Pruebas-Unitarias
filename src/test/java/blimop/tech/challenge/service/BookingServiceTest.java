@@ -1,7 +1,6 @@
 package blimop.tech.challenge.service;
 
 import blimop.tech.challenge.domain.Reservation;
-import blimop.tech.challenge.domain.Room;
 import blimop.tech.challenge.repository.ReservationRepository;
 import blimop.tech.challenge.repository.RoomRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,24 +9,18 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.time.LocalDate;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.logging.Logger;
 
+import static blimop.tech.challenge.service.DatosBookingServiceTest.*;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 class BookingServiceTest {
 
     private static final Logger logger = Logger.getLogger(BookingServiceTest.class.getName());
-    private LocalDate startDate = LocalDate.now();
-    private LocalDate endDate = startDate.plusDays(1);
-    private LocalDate yesterday = startDate.minusDays(1);
-    private String roomId = "po9886ftcyfc5";
-    private String guestId = "3u4h43bde3i";
-    private String roomOcupadoId = "po3886ftcyfc5";
-    private Reservation reservation = new Reservation();
 
     @InjectMocks
     private BookingService bookingService;
@@ -40,23 +33,11 @@ class BookingServiceTest {
     public void setUp() {
         MockitoAnnotations.openMocks(this);
 
-        //agregamos valores a varible reserva
-        reservation.setGuestId(guestId);
-        reservation.setRoomId(roomId);
-        reservation.setStartDate(startDate);
-        reservation.setEndDate(endDate);
-
         //configura Mockito para obtener datos de un room
-        Room room = new Room();
-        room.setId(roomId);
-        room.setType("Simple");
-        when(roomRepository.findById(roomId)).thenReturn(Optional.of(room));
+        when(roomRepository.findById(roomId)).thenReturn(room());
 
         //configura Mockito para obtener datos de un roomOcupado
-        Room roomOcupado = new Room();
-        roomOcupado.setId(roomId);
-        roomOcupado.setType("Simple");
-        when(roomRepository.findById(roomOcupadoId)).thenReturn(Optional.of(roomOcupado));
+        when(roomRepository.findById(roomOcupadoId)).thenReturn(roomOcupado());
 
         //configura Mockito para obtener una lista de reservas vacía
         when(reservationRepository.findByRoomIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
@@ -67,16 +48,10 @@ class BookingServiceTest {
                 roomOcupadoId, endDate, startDate)).thenReturn(Collections.singletonList(new Reservation()));
 
         //configura Mockito datos de una reserva no vencida
-        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+        when(reservationRepository.findById(1L)).thenReturn(reservation());
 
         //configura Mockito datos de una reserva vencida
-        Reservation reservationVencida = new Reservation();
-        reservationVencida.setId(2L);
-        reservationVencida.setGuestId(roomId);
-        reservationVencida.setRoomId(roomOcupadoId);
-        reservationVencida.setStartDate(yesterday);
-        reservationVencida.setEndDate(endDate);
-        when(reservationRepository.findById(2L)).thenReturn(Optional.of(reservationVencida));
+        when(reservationRepository.findById(2L)).thenReturn(reservationVencida());
 
     }
 
@@ -90,14 +65,9 @@ class BookingServiceTest {
     @Test
     void makeReservationExitosa() {
         logger.info("Inciando test makeReservationExitosa()");
-        Reservation savedReservation = new Reservation();
-        savedReservation.setId(1L);
-        savedReservation.setGuestId(guestId);
-        savedReservation.setRoomId(roomId);
-        savedReservation.setStartDate(startDate);
-        savedReservation.setEndDate(endDate);
 
-        when(reservationRepository.save(reservation)).thenReturn(savedReservation);
+        Reservation savedReservation = reserva();
+        when(reservationRepository.save(reserva())).thenReturn(savedReservation);
 
         Reservation newReserva = bookingService.makeReservation(guestId, roomId, startDate, endDate);
 
@@ -106,7 +76,8 @@ class BookingServiceTest {
         assertEquals(savedReservation.getRoomId(), newReserva.getRoomId());
         assertEquals(savedReservation.getStartDate(), newReserva.getStartDate());
         assertEquals(savedReservation.getEndDate(), newReserva.getEndDate());
-
+        //verificamos que solo se haya instanciado una vez el método save
+        verify(reservationRepository, times(1)).save(any(Reservation.class));
         logger.info("Finalizando test makeReservationExitosa()");
     }
 
@@ -154,6 +125,8 @@ class BookingServiceTest {
     void cancelReservationExitosa() {
         logger.info("Inciando test cancelReservationExitosa()");
         assertTrue(bookingService.cancelReservation(1L));
+        //verificamos que solo se haya instanciado una vez el método delete
+        verify(reservationRepository, times(1)).deleteById(1L);
         logger.info("Finalizando test cancelReservationExitosa()");
     }
 
